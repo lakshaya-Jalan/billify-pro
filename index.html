@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Billify Pro — Premium Multi-Business Billing</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            },
+            accent: {
+              400: '#a78bfa',
+              500: '#8b5cf6',
+              600: '#7c3aed',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            display: ['Cal Sans', 'Inter', 'system-ui', 'sans-serif'],
+          },
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'gradient': 'gradient 8s ease infinite',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-20px)' },
+            },
+            gradient: {
+              '0%, 100%': { backgroundPosition: '0% 50%' },
+              '50%': { backgroundPosition: '100% 50%' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    
+    * {
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+    
+    body {
+      background: #0a0a0f;
+      overflow-x: hidden;
+    }
+    
+    .glass {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .glass-strong {
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(30px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #38bdf8 0%, #a78bfa 50%, #f472b6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .gradient-bg {
+      background: linear-gradient(-45deg, #0ea5e9, #8b5cf6, #ec4899, #0ea5e9);
+      background-size: 400% 400%;
+      animation: gradient 12s ease infinite;
+    }
+    
+    .mesh-bg {
+      background-color: #0a0a0f;
+      background-image: 
+        radial-gradient(at 40% 20%, rgba(14, 165, 233, 0.15) 0px, transparent 50%),
+        radial-gradient(at 80% 0%, rgba(139, 92, 246, 0.12) 0px, transparent 50%),
+        radial-gradient(at 0% 50%, rgba(236, 72, 153, 0.1) 0px, transparent 50%),
+        radial-gradient(at 80% 50%, rgba(14, 165, 233, 0.08) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, rgba(139, 92, 246, 0.1) 0px, transparent 50%);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #0ea5e9, #8b5cf6);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 40px -10px rgba(14, 165, 233, 0.4);
+    }
+    
+    .card-hover {
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .card-hover:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    
+    .input-field {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+    
+    .input-field:focus {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: #0ea5e9;
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+      outline: none;
+    }
+    
+    .sidebar-item {
+      transition: all 0.25s ease;
+    }
+    
+    .sidebar-item:hover, .sidebar-item.active {
+      background: linear-gradient(90deg, rgba(14, 165, 233, 0.15), transparent);
+      border-left: 3px solid #0ea5e9;
+    }
+    
+    .page {
+      display: none;
+      opacity: 0;
+    }
+    
+    .page.active {
+      display: block;
+      animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.4;
+      animation: float 8s ease-in-out infinite;
+    }
+    
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.15);
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255,255,255,0.25);
+    }
+    
+    .table-row {
+      transition: all 0.2s ease;
+    }
+    .table-row:hover {
+      background: rgba(14, 165, 233, 0.08);
+    }
+    
+    #invoice-preview {
+      background: white;
+      color: #1a1a1a;
+    }
+  </style>
+</head>
+<body class="mesh-bg text-white min-h-screen">
+  
+  <!-- ==================== AUTH SCREEN ==================== -->
+  <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <!-- Animated orbs -->
+    <div class="orb w-96 h-96 bg-sky-500 top-0 left-0 -translate-x-1/2 -translate-y-1/2"></div>
+    <div class="orb w-80 h-80 bg-violet-500 bottom-0 right-0 translate-x-1/3 translate-y-1/3" style="animation-delay: -3s;"></div>
+    <div class="orb w-64 h-64 bg-pink-500 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style="animation-delay: -5s;"></div>
+    
+    <div class="glass-strong rounded-3xl p-8 md:p-12 w-full max-w-md relative z-10 shadow-2xl">
+      <!-- Logo -->
+      <div class="text-center mb-10">
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl gradient-bg mb-5 shadow-lg shadow-sky-500/30">
+          <i class="fas fa-file-invoice-dollar text-3xl text-white"></i>
+        </div>
+        <h1 class="text-4xl font-black gradient-text tracking-tight">Billify Pro</h1>
+        <p class="text-gray-400 mt-2 text-sm">Premium Multi-Business Billing Platform</p>
+      </div>
+      
+      <!-- Tabs -->
+      <div class="flex gap-2 mb-8 p-1 glass rounded-xl">
+        <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-3 rounded-lg font-semibold text-sm transition-all bg-gradient-to-r from-sky-500 to-violet-500 text-white">
+          Login
+        </button>
+        <button id="tab-signup" onclick="switchAuthTab('signup')" class="flex-1 py-3 rounded-lg font-semibold text-sm transition-all text-gray-400 hover:text-white">
+          Sign Up
+        </button>
+      </div>
+      
+      <!-- Login Form -->
+      <form id="login-form" class="space-y-5" onsubmit="handleLogin(event)">
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Email</label>
+          <input type="email" id="login-email" required class="input-field w-full px-4 py-3.5 rounded-xl text-white placeholder-gray-500" placeholder="you@business.com">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Password</label>
+          <input type="password" id="login-password" required class="input-field w-full px-4 py-3.5 rounded-xl text-white placeholder-gray-500" placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn-primary w-full py-4 rounded-xl font-bold text-white text-lg mt-2">
+          Login to Dashboard
+        </button>
+      </form>
+      
+      <!-- Signup Form -->
+      <form id="signup-form" class="space-y-5 hidden" onsubmit="handleSignup(event)">
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Full Name</label>
+          <input type="text" id="signup-name" required class="input-field w-full px-4 py-3.5 rounded-xl text-white placeholder-gray-500" placeholder="Your Name">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Business Name</label>
+          <input type="text" id="signup-business" required class="input-field w-full px-4 py-3.5 rounded-xl text-white placeholder-gray-500" placeholder="Your Business Name">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Email</label>
+          <input type="email" id="signup-email" required class="input-field w-full px-4 py-3.5 rounded-xl text-white placeholder-gray-500" placeholder="you@business.com">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Password</label>
+          <input type="password" id="signup-password" required minlength="6" class="input-field w-full px-4 py-3.5 rounded-xl text-white placeholder-gray-500" placeholder="Min 6 characters">
+        </div>
+        <button type="submit" class="btn-primary w-full py-4 rounded-xl font-bold text-white text-lg mt-2">
+          Create Account
+        </button>
+      </form>
+      
+      <p id="auth-error" class="text-red-400 text-sm text-center mt-5 hidden"></p>
+      <p id="auth-success" class="text-green-400 text-sm text-center mt-5 hidden"></p>
+    </div>
+  </div>
+  
+  <!-- ==================== MAIN APP ==================== -->
+  <div id="app" class="hidden min-h-screen flex">
+    
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-72 glass border-r border-white/5 flex flex-col fixed h-full z-40">
+      <div class="p-6 border-b border-white/5">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl gradient-bg flex items-center justify-center shadow-lg shadow-sky-500/20">
+            <i class="fas fa-file-invoice-dollar text-lg"></i>
+          </div>
+          <div>
+            <h2 class="font-bold text-lg leading-tight">Billify Pro</h2>
+            <p id="business-name-display" class="text-xs text-gray-400 truncate max-w-[140px]">Loading...</p>
+          </div>
+        </div>
+      </div>
+      
+      <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+        <button onclick="navigate('dashboard')" class="sidebar-item active w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left" data-page="dashboard">
+          <i class="fas fa-chart-pie w-5 text-sky-400"></i>
+          <span class="font-medium">Dashboard</span>
+        </button>
+        <button onclick="navigate('create-bill')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left" data-page="create-bill">
+          <i class="fas fa-plus-circle w-5 text-emerald-400"></i>
+          <span class="font-medium">Create Bill</span>
+        </button>
+        <button onclick="navigate('products')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left" data-page="products">
+          <i class="fas fa-box w-5 text-violet-400"></i>
+          <span class="font-medium">Products</span>
+        </button>
+        <button onclick="navigate('customers')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left" data-page="customers">
+          <i class="fas fa-users w-5 text-pink-400"></i>
+          <span class="font-medium">Customers</span>
+        </button>
+        <button onclick="navigate('history')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left" data-page="history">
+          <i class="fas fa-history w-5 text-amber-400"></i>
+          <span class="font-medium">Bill History</span>
+        </button>
+        <button onclick="navigate('settings')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left" data-page="settings">
+          <i class="fas fa-cog w-5 text-gray-400"></i>
+          <span class="font-medium">Settings</span>
+        </button>
+      </nav>
+      
+      <div class="p-4 border-t border-white/5">
+        <button onclick="handleLogout()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all">
+          <i class="fas fa-sign-out-alt w-5"></i>
+          <span class="font-medium">Logout</span>
+        </button>
+      </div>
+    </aside>
+    
+    <!-- Main Content -->
+    <main class="flex-1 ml-72 min-h-screen">
+      <!-- Top Bar -->
+      <header class="sticky top-0 z-30 glass border-b border-white/5 px-8 py-4 flex items-center justify-between">
+        <div>
+          <h1 id="page-title" class="text-2xl font-bold">Dashboard</h1>
+          <p id="page-subtitle" class="text-sm text-gray-400">Welcome back</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="text-right">
+            <p id="user-name-display" class="font-semibold text-sm">User</p>
+            <p class="text-xs text-gray-500">Owner</p>
+          </div>
+          <div class="w-11 h-11 rounded-full gradient-bg flex items-center justify-center font-bold text-lg shadow-lg">
+            <span id="user-avatar">U</span>
+          </div>
+        </div>
+      </header>
+      
+      <!-- Pages Container -->
+      <div class="p-8">
+        
+        <!-- ========== DASHBOARD ========== -->
+        <div id="page-dashboard" class="page active">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="glass rounded-2xl p-6 card-hover">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 rounded-xl bg-sky-500/20 flex items-center justify-center">
+                  <i class="fas fa-rupee-sign text-sky-400 text-xl"></i>
+                </div>
+                <span class="text-xs text-gray-500">Today</span>
+              </div>
+              <p class="text-3xl font-black" id="stat-today-sales">₹0</p>
+              <p class="text-sm text-gray-400 mt-1">Today's Sales</p>
+            </div>
+            
+            <div class="glass rounded-2xl p-6 card-hover">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                  <i class="fas fa-clock text-amber-400 text-xl"></i>
+                </div>
+                <span class="text-xs text-gray-500">Pending</span>
+              </div>
+              <p class="text-3xl font-black" id="stat-pending">₹0</p>
+              <p class="text-sm text-gray-400 mt-1">Pending Amount</p>
+            </div>
+            
+            <div class="glass rounded-2xl p-6 card-hover">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                  <i class="fas fa-file-invoice text-emerald-400 text-xl"></i>
+                </div>
+                <span class="text-xs text-gray-500">Total</span>
+              </div>
+              <p class="text-3xl font-black" id="stat-total-bills">0</p>
+              <p class="text-sm text-gray-400 mt-1">Total Bills</p>
+            </div>
+            
+            <div class="glass rounded-2xl p-6 card-hover">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center">
+                  <i class="fas fa-box text-violet-400 text-xl"></i>
+                </div>
+                <span class="text-xs text-gray-500">Catalog</span>
+              </div>
+              <p class="text-3xl font-black" id="stat-products">0</p>
+              <p class="text-sm text-gray-400 mt-1">Products</p>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 glass rounded-2xl p-6">
+              <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold">Recent Bills</h3>
+                <button onclick="navigate('history')" class="text-sm text-sky-400 hover:text-sky-300">View All →</button>
+              </div>
+              <div id="recent-bills" class="space-y-3">
+                <p class="text-gray-500 text-center py-8">No bills yet. Create your first bill!</p>
+              </div>
+            </div>
+            
+            <div class="glass rounded-2xl p-6">
+              <h3 class="text-lg font-bold mb-6">Quick Actions</h3>
+              <div class="space-y-3">
+                <button onclick="navigate('create-bill')" class="w-full flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-sky-500/20 to-violet-500/20 hover:from-sky-500/30 hover:to-violet-500/30 transition-all border border-sky-500/20">
+                  <i class="fas fa-plus-circle text-sky-400 text-xl"></i>
+                  <span class="font-semibold">Create New Bill</span>
+                </button>
+                <button onclick="navigate('products')" class="w-full flex items-center gap-3 p-4 rounded-xl glass hover:bg-white/5 transition-all">
+                  <i class="fas fa-box text-violet-400 text-xl"></i>
+                  <span class="font-semibold">Manage Products</span>
+                </button>
+                <button onclick="navigate('customers')" class="w-full flex items-center gap-3 p-4 rounded-xl glass hover:bg-white/5 transition-all">
+                  <i class="fas fa-user-plus text-pink-400 text-xl"></i>
+                  <span class="font-semibold">Add Customer</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- ========== CREATE BILL ========== -->
+        <div id="page-create-bill" class="page">
+          <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <!-- Left: Form -->
+            <div class="xl:col-span-2 space-y-6">
+              <!-- Customer Section -->
+              <div class="glass rounded-2xl p-6">
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                  <i class="fas fa-user text-pink-400"></i> Customer Details
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm text-gray-400 mb-2">Customer Name *</label>
+                    <input type="text" id="bill-customer-name" class="input-field w-full px-4 py-3 rounded-xl" placeholder="Enter name">
+                  </div>
+                  <div>
+                    <label class="block text-sm text-gray-400 mb-2">Phone Number</label>
+                    <input type="tel" id="bill-customer-phone" class="input-field w-full px-4 py-3 rounded-xl" placeholder="10-digit number">
+                  </div>
+                </div>
+                <div class="mt-3">
+                  <select id="saved-customers" onchange="selectSavedCustomer()" class="input-field w-full px-4 py-3 rounded-xl text-gray-300">
+                    <option value="">— Select saved customer —</option>
+                  </select>
+                </div>
+              </div>
+              
+              <!-- Items Section -->
+              <div class="glass rounded-2xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-lg font-bold flex items-center gap-2">
+                    <i class="fas fa-list text-violet-400"></i> Bill Items
+                  </h3>
+                  <button onclick="addBillItem()" class="text-sm bg-violet-500/20 text-violet-300 px-4 py-2 rounded-lg hover:bg-violet-500/30 transition-all">
+                    <i class="fas fa-plus mr-1"></i> Add Item
+                  </button>
+                </div>
+                <div id="bill-items" class="space-y-3">
+                  <!-- Items will be added here -->
+                </div>
+              </div>
+              
+              <!-- Payment & Discount -->
+              <div class="glass rounded-2xl p-6">
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                  <i class="fas fa-money-bill-wave text-emerald-400"></i> Payment & Discount
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label class="block text-sm text-gray-400 mb-2">Discount (₹)</label>
+                    <input type="number" id="bill-discount" value="0" min="0" oninput="calculateTotals()" class="input-field w-full px-4 py-3 rounded-xl">
+                  </div>
+                  <div>
+                    <label class="block text-sm text-gray-400 mb-2">Payment Status</label>
+                    <select id="bill-payment-status" onchange="togglePaidAmount()" class="input-field w-full px-4 py-3 rounded-xl">
+                      <option value="pending">Pending</option>
+                      <option value="half">Half Paid</option>
+                      <option value="paid">Fully Paid</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-gray-400 mb-2">Payment Mode</label>
+                    <select id="bill-payment-mode" class="input-field w-full px-4 py-3 rounded-xl">
+                      <option value="Cash">Cash</option>
+                      <option value="UPI">UPI</option>
+                      <option value="Card">Card</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="paid-amount-section" class="mt-4 hidden">
+                  <label class="block text-sm text-gray-400 mb-2">Amount Paid (₹)</label>
+                  <input type="number" id="bill-amount-paid" value="0" min="0" oninput="calculateTotals()" class="input-field w-full md:w-1/3 px-4 py-3 rounded-xl">
+                </div>
+              </div>
+            </div>
+            
+            <!-- Right: Summary -->
+            <div class="space-y-6">
+              <div class="glass rounded-2xl p-6 sticky top-28">
+                <h3 class="text-lg font-bold mb-6">Bill Summary</h3>
+                
+                <div class="space-y-3 text-sm">
+                  <div class="flex justify-between">
+                    <span class="text-gray-400">Subtotal</span>
+                    <span id="summary-subtotal" class="font-semibold">₹0.00</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-400">Tax / GST</span>
+                    <span id="summary-tax" class="font-semibold">₹0.00</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-400">Discount</span>
+                    <span id="summary-discount" class="font-semibold text-red-400">- ₹0.00</span>
+                  </div>
+                  <div class="border-t border-white/10 pt-3 flex justify-between text-lg">
+                    <span class="font-bold">Grand Total</span>
+                    <span id="summary-total" class="font-black gradient-text text-2xl">₹0.00</span>
+                  </div>
+                  <div id="summary-remaining" class="hidden flex justify-between text-amber-400">
+                    <span>Remaining</span>
+                    <span id="summary-remaining-amount" class="font-bold">₹0.00</span>
+                  </div>
+                </div>
+                
+                <div class="mt-8 space-y-3">
+                  <button onclick="saveBill()" class="btn-primary w-full py-4 rounded-xl font-bold text-lg">
+                    <i class="fas fa-save mr-2"></i> Save & Generate PDF
+                  </button>
+                  <button onclick="previewBill()" class="w-full py-3 rounded-xl font-semibold glass hover:bg-white/5 transition-all">
+                    <i class="fas fa-eye mr-2"></i> Preview
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- ========== PRODUCTS ========== -->
+        <div id="page-products" class="page">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-gray-400">Manage your product catalog</p>
+            <button onclick="openProductModal()" class="btn-primary px-6 py-3 rounded-xl font-semibold">
+              <i class="fas fa-plus mr-2"></i> Add Product
+            </button>
+          </div>
+          
+          <div class="glass rounded-2xl overflow-hidden">
+            <table class="w-full">
+              <thead>
+                <tr class="border-b border-white/10 text-left text-sm text-gray-400">
+                  <th class="px-6 py-4 font-medium">Product Name</th>
+                  <th class="px-6 py-4 font-medium">Price (₹)</th>
+                  <th class="px-6 py-4 font-medium">Unit</th>
+                  <th class="px-6 py-4 font-medium">Tax Type</th>
+                  <th class="px-6 py-4 font-medium">Tax %</th>
+                  <th class="px-6 py-4 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="products-table">
+                <tr>
+                  <td colspan="6" class="px-6 py-12 text-center text-gray-500">No products yet. Add your first product!</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- ========== CUSTOMERS ========== -->
+        <div id="page-customers" class="page">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-gray-400">Your saved customers</p>
+            <button onclick="openCustomerModal()" class="btn-primary px-6 py-3 rounded-xl font-semibold">
+              <i class="fas fa-user-plus mr-2"></i> Add Customer
+            </button>
+          </div>
+          
+          <div class="glass rounded-2xl overflow-hidden">
+            <table class="w-full">
+              <thead>
+                <tr class="border-b border-white/10 text-left text-sm text-gray-400">
+                  <th class="px-6 py-4 font-medium">Name</th>
+                  <th class="px-6 py-4 font-medium">Phone</th>
+                  <th class="px-6 py-4 font-medium">Total Bills</th>
+                  <th class="px-6 py-4 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="customers-table">
+                <tr>
+                  <td colspan="4" class="px-6 py-12 text-center text-gray-500">No customers yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- ========== BILL HISTORY ========== -->
+        <div id="page-history" class="page">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-gray-400">All your past bills</p>
+            <div class="flex gap-3">
+              <select id="history-filter" onchange="loadBills()" class="input-field px-4 py-2 rounded-xl text-sm">
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="half">Half Paid</option>
+                <option value="paid">Fully Paid</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="glass rounded-2xl overflow-hidden">
+            <table class="w-full">
+              <thead>
+                <tr class="border-b border-white/10 text-left text-sm text-gray-400">
+                  <th class="px-6 py-4 font-medium">Invoice #</th>
+                  <th class="px-6 py-4 font-medium">Customer</th>
+                  <th class="px-6 py-4 font-medium">Date</th>
+                  <th class="px-6 py-4 font-medium">Amount</th>
+                  <th class="px-6 py-4 font-medium">Status</th>
+                  <th class="px-6 py-4 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="history-table">
+                <tr>
+                  <td colspan="6" class="px-6 py-12 text-center text-gray-500">No bills found.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- ========== SETTINGS ========== -->
+        <div id="page-settings" class="page">
+          <div class="max-w-3xl space-y-6">
+            <div class="glass rounded-2xl p-6">
+              <h3 class="text-lg font-bold mb-6 flex items-center gap-2">
+                <i class="fas fa-building text-sky-400"></i> Company Profile
+              </h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="md:col-span-2">
+                  <label class="block text-sm text-gray-400 mb-2">Company / Business Name</label>
+                  <input type="text" id="settings-business-name" class="input-field w-full px-4 py-3 rounded-xl">
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2">Phone</label>
+                  <input type="tel" id="settings-phone" class="input-field w-full px-4 py-3 rounded-xl">
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2">Email</label>
+                  <input type="email" id="settings-email" class="input-field w-full px-4 py-3 rounded-xl">
+                </div>
+                <div class="md:col-span-2">
+                  <label class="block text-sm text-gray-400 mb-2">Address</label>
+                  <textarea id="settings-address" rows="2" class="input-field w-full px-4 py-3 rounded-xl"></textarea>
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2">GSTIN</label>
+                  <input type="text" id="settings-gstin" class="input-field w-full px-4 py-3 rounded-xl" placeholder="Optional">
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2">Invoice Prefix</label>
+                  <input type="text" id="settings-invoice-prefix" class="input-field w-full px-4 py-3 rounded-xl" placeholder="INV">
+                </div>
+              </div>
+              
+              <div class="mt-6 pt-6 border-t border-white/10">
+                <h4 class="font-semibold mb-4">Bank Details (shown on invoice)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label class="block text-sm text-gray-400 mb-2">Bank Name</label>
+                    <input type="text" id="settings-bank-name" class="input-field w-full px-4 py-3 rounded-xl">
+                  </div>
+                  <div>
+                    <label class="block text-sm text-gray-400 mb-2">Account Number</label>
+                    <input type="text" id="settings-account-number" class="input-field w-full px-4 py-3 rounded-xl">
+                  </div>
+                  <div>
+                    <label class="block text-sm text-gray-400 mb-2">IFSC Code</label>
+                    <input type="text" id="settings-ifsc" class="input-field w-full px-4 py-3 rounded-xl">
+                  </div>
+                  <div>
+                    <label class="block text-sm text-gray-400 mb-2">UPI ID</label>
+                    <input type="text" id="settings-upi" class="input-field w-full px-4 py-3 rounded-xl">
+                  </div>
+                </div>
+              </div>
+              
+              <button onclick="saveSettings()" class="btn-primary mt-8 px-8 py-3 rounded-xl font-bold">
+                <i class="fas fa-save mr-2"></i> Save Settings
+              </button>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </main>
+  </div>
+  
+  <!-- Product Modal -->
+  <div id="product-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+    <div class="glass-strong rounded-2xl p-8 w-full max-w-lg">
+      <h3 id="product-modal-title" class="text-xl font-bold mb-6">Add Product</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Product Name *</label>
+          <input type="text" id="product-name" class="input-field w-full px-4 py-3 rounded-xl">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm text-gray-400 mb-2">Price (₹) *</label>
+            <input type="number" id="product-price" min="0" step="0.01" class="input-field w-full px-4 py-3 rounded-xl">
+          </div>
+          <div>
+            <label class="block text-sm text-gray-400 mb-2">Unit</label>
+            <select id="product-unit" class="input-field w-full px-4 py-3 rounded-xl">
+              <option value="Pcs">Pcs</option>
+              <option value="Kg">Kg</option>
+              <option value="Liter">Liter</option>
+              <option value="Box">Box</option>
+              <option value="Meter">Meter</option>
+              <option value="Dozen">Dozen</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm text-gray-400 mb-2">Tax Type</label>
+            <select id="product-tax-type" class="input-field w-full px-4 py-3 rounded-xl">
+              <option value="none">No Tax</option>
+              <option value="flat">Flat %</option>
+              <option value="gst">CGST + SGST</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-400 mb-2">Tax %</label>
+            <input type="number" id="product-tax-rate" min="0" max="100" value="0" class="input-field w-full px-4 py-3 rounded-xl">
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-8">
+        <button onclick="closeProductModal()" class="flex-1 py-3 rounded-xl glass hover:bg-white/5 font-semibold">Cancel</button>
+        <button onclick="saveProduct()" class="flex-1 py-3 rounded-xl btn-primary font-bold">Save Product</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Customer Modal -->
+  <div id="customer-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+    <div class="glass-strong rounded-2xl p-8 w-full max-w-md">
+      <h3 class="text-xl font-bold mb-6">Add Customer</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Name *</label>
+          <input type="text" id="customer-name" class="input-field w-full px-4 py-3 rounded-xl">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Phone</label>
+          <input type="tel" id="customer-phone" class="input-field w-full px-4 py-3 rounded-xl">
+        </div>
+      </div>
+      <div class="flex gap-3 mt-8">
+        <button onclick="closeCustomerModal()" class="flex-1 py-3 rounded-xl glass hover:bg-white/5 font-semibold">Cancel</button>
+        <button onclick="saveCustomer()" class="flex-1 py-3 rounded-xl btn-primary font-bold">Save</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-8 right-8 z-50 hidden">
+    <div class="glass-strong px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 min-w-[280px]">
+      <i id="toast-icon" class="fas fa-check-circle text-emerald-400 text-xl"></i>
+      <span id="toast-message" class="font-medium"></span>
+    </div>
+  </div>
+  
+  <!-- Hidden Invoice for PDF -->
+  <div id="invoice-preview" class="fixed left-[-9999px] w-[800px] p-10 bg-white text-black">
+    <!-- Will be populated dynamically -->
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
